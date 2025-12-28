@@ -1,21 +1,22 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Clock, User, Tag, Share2, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, User, Tag, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import NewsDetailClient from '@/components/NewsDetailClient';
 import NewsCard from '@/components/NewsCard';
+import SocialShare from '@/components/SocialShare'; // Import the new component
 import { newsService } from '@/lib/newsService';
 import { format } from 'date-fns';
 
 const categoryColors: Record<string, string> = {
-  Politics: 'bg-red-500/10 text-red-400 border-red-500/20',
-  Business: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  Technology: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  Sports: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  Entertainment: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
-  Health: 'bg-green-500/10 text-green-400 border-green-500/20'
+  Politics: 'bg-red-600 text-white shadow-lg shadow-red-900/20',
+  Business: 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20',
+  Technology: 'bg-blue-600 text-white shadow-lg shadow-blue-900/20',
+  Sports: 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-900/20',
+  Entertainment: 'bg-pink-600 text-white shadow-lg shadow-pink-900/20',
+  Health: 'bg-green-600 text-white shadow-lg shadow-green-900/20'
 };
 
 export default async function NewsDetailPage({ params }: { params: { id: string } }) {
@@ -34,58 +35,61 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
   const categoryColor = categoryColors[article.category] || categoryColors.Technology;
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       <Navbar />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 group"
+          className="inline-flex items-center gap-2 text-slate-400 hover:text-amber-500 transition-colors mb-8 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to Home</span>
+          <span className="font-medium text-sm">Back to Home</span>
         </Link>
 
         <article>
           <div className="mb-6">
-            <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-medium border ${categoryColor}`}>
+            <span className={`inline-block px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest ${categoryColor}`}>
               {article.category}
             </span>
           </div>
 
-          <h1 className="text-white font-bold text-3xl md:text-4xl lg:text-5xl mb-6 leading-tight">
+          <h1 className="text-white font-black text-3xl md:text-5xl lg:text-6xl mb-8 leading-[1.1] tracking-tight">
             {article.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-6 text-slate-400 mb-8">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">
-                  {article.author.avatar || article.author.name.charAt(0)}
-                </span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span className="text-white font-medium">{article.author.name}</span>
+          {/* Fixed Meta Bar */}
+          <div className="flex flex-wrap items-center gap-6 text-slate-400 mb-10 pb-8 border-b border-slate-800/60">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 bg-gradient-to-tr from-amber-500 to-orange-600 rounded-full flex items-center justify-center p-[2px]">
+                <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center overflow-hidden border-2 border-slate-950">
+                  <User className="w-5 h-5 text-amber-500" />
                 </div>
               </div>
+              <div>
+                <span className="text-white font-bold block leading-none mb-1">{article.author.name}</span>
+                <span className="text-[10px] uppercase tracking-tighter text-slate-500 font-bold">Verified Author</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
+
+            <div className="h-8 w-[1px] bg-slate-800 hidden md:block" />
+
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="w-4 h-4 text-amber-500/70" />
               <span>{format(new Date(article.date), 'MMMM dd, yyyy')}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
+
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="w-4 h-4 text-amber-500/70" />
               <span>{article.readTime} min read</span>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors ml-auto">
-              <Share2 className="w-4 h-4" />
-              <span>Share</span>
-            </button>
+
+            {/* Social Share Component (Client Side) */}
+            <SocialShare title={article.title} />
           </div>
 
-          <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden mb-8">
+          {/* Hero Image */}
+          <div className="relative h-[400px] md:h-[550px] rounded-[2rem] overflow-hidden mb-12 shadow-2xl ring-1 ring-slate-800">
             <Image
               src={article.image}
               alt={article.title}
@@ -95,23 +99,28 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
             />
           </div>
 
-          <div className="prose prose-invert prose-lg max-w-none mb-8">
+          {/* Article Content */}
+          <div className="prose prose-invert prose-lg max-w-none mb-12">
             {article.content.split('\n\n').map((paragraph, index) => (
-              <p key={index} className="text-slate-300 leading-relaxed mb-6">
+              <p key={index} className="text-slate-300 leading-[1.8] mb-8 text-lg md:text-xl">
                 {paragraph}
               </p>
             ))}
           </div>
 
+          {/* Tags */}
           {article.tags.length > 0 && (
-            <div className="flex items-center gap-3 flex-wrap mb-12 pb-12 border-b border-slate-800">
-              <Tag className="w-5 h-5 text-slate-400" />
+            <div className="flex items-center gap-3 flex-wrap mb-16 py-8 border-y border-slate-800/60">
+              <div className="flex items-center gap-2 mr-2">
+                <Tag className="w-5 h-5 text-amber-500" />
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Tags:</span>
+              </div>
               {article.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-4 py-1.5 bg-slate-800/50 text-slate-300 rounded-lg text-sm hover:bg-slate-700/50 transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:border-amber-500 hover:text-amber-500 transition-all cursor-pointer shadow-sm"
                 >
-                  {tag}
+                  #{tag}
                 </span>
               ))}
             </div>
@@ -120,10 +129,14 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
 
         <NewsDetailClient newsId={params.id} initialComments={comments} />
 
+        {/* Related News */}
         {relatedNews.length > 0 && (
-          <section>
-            <h2 className="text-white font-bold text-2xl mb-6">Related News</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <section className="mt-20">
+            <div className="flex items-center gap-3 mb-8">
+               <div className="h-8 w-1.5 bg-amber-500 rounded-full" />
+               <h2 className="text-white font-black text-2xl uppercase tracking-tight">Related Stories</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {relatedNews.map((news) => (
                 <NewsCard key={news.id} article={news} />
               ))}
@@ -135,11 +148,4 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
       <Footer />
     </div>
   );
-}
-
-export async function generateStaticParams() {
-  const news = await newsService.getAllNews();
-  return news.map((article) => ({
-    id: article.id
-  }));
 }

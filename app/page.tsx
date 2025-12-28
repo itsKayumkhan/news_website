@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react'; // 1. useRef import kiya
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation'; // URL params read karne ke liye
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FeaturedNews from '@/components/FeaturedNews';
@@ -10,9 +11,9 @@ import SearchBar from '@/components/SearchBar';
 import NewsCard from '@/components/NewsCard';
 import { NewsArticle, NewsCategory } from '@/types/news';
 import { newsService } from '@/lib/newsService';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Zap, Newspaper } from 'lucide-react';
 
-export default function Home() {
+function HomeContent() {
   const [featuredNews, setFeaturedNews] = useState<NewsArticle[]>([]);
   const [trendingNews, setTrendingNews] = useState<NewsArticle[]>([]);
   const [displayNews, setDisplayNews] = useState<NewsArticle[]>([]);
@@ -20,50 +21,63 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 2. Ref create kiya News Section ke liye
   const newsSectionRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
-  useEffect(() => {
-    loadNews();
-  }, []);
-
-  const loadNews = async () => {
-    setLoading(true);
-    try {
-      const [featured, trending, all] = await Promise.all([
-        newsService.getFeaturedNews(),
-        newsService.getTrendingNews(),
-        newsService.getAllNews()
-      ]);
-
-      setFeaturedNews(featured);
-      setTrendingNews(trending);
-      setDisplayNews(all);
-    } catch (error) {
-      console.error('Error loading news:', error);
-    } finally {
-      setLoading(false);
+  // Scroll function jo offset maintain karega
+  const scrollToNews = () => {
+    if (newsSectionRef.current) {
+      const offset = 100;
+      const elementPosition = newsSectionRef.current.getBoundingClientRect().top + window.pageYOffset;
+      window.scrollTo({ top: elementPosition - offset, behavior: 'smooth' });
     }
   };
 
-  // 3. Category change function with Scroll
+  useEffect(() => {
+    const queryCategory = searchParams.get('category');
+    const querySearch = searchParams.get('search');
+
+    const initializeNews = async () => {
+      setLoading(true);
+      try {
+        // Initial data fetch
+        const [featured, trending] = await Promise.all([
+          newsService.getFeaturedNews(),
+          newsService.getTrendingNews(),
+        ]);
+        setFeaturedNews(featured);
+        setTrendingNews(trending);
+
+        // Agar URL mein category ya search hai toh filter apply karo
+        if (queryCategory) {
+          const cat = queryCategory as NewsCategory;
+          setActiveCategory(cat);
+          const news = await newsService.getNewsByCategory(cat);
+          setDisplayNews(news);
+          setTimeout(scrollToNews, 500);
+        } else if (querySearch) {
+          setSearchQuery(querySearch);
+          const news = await newsService.searchNews(querySearch);
+          setDisplayNews(news);
+          setTimeout(scrollToNews, 500);
+        } else {
+          const all = await newsService.getAllNews();
+          setDisplayNews(all);
+        }
+      } catch (error) {
+        console.error('Error loading news:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeNews();
+  }, [searchParams]);
+
   const handleCategoryChange = async (category: NewsCategory) => {
     setActiveCategory(category);
     setSearchQuery('');
-
-    // Scroll to News Section smoothly
-    if (newsSectionRef.current) {
-      const offset = 100; // Navbar ki height ke hisab se adjustment
-      const bodyRect = document.body.getBoundingClientRect().top;
-      const elementRect = newsSectionRef.current.getBoundingClientRect().top;
-      const elementPosition = elementRect - bodyRect;
-      const offsetPosition = elementPosition - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
+    scrollToNews();
 
     setLoading(true);
     try {
@@ -79,9 +93,7 @@ export default function Home() {
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     setActiveCategory('All News');
-
-    // Search karne par bhi scroll kar sakte hain
-    newsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToNews();
 
     setLoading(true);
     try {
@@ -109,37 +121,49 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950  "> {/* pt-20 added for fixed navbar */}
+    <div className="min-h-screen bg-slate-950">
       <Navbar
         onSearch={handleSearch}
         onCategoryChange={handleCategoryChange}
-        activeCategory={activeCategory} // Active state pass kiya
+        activeCategory={activeCategory}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading && featuredNews.length === 0 ? (
           <div className="flex items-center justify-center h-96">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
           </div>
         ) : (
           <>
-            {/* Hero Section (Featured & Trending) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                <Newspaper className="w-5 h-5 text-blue-400" />
+              </div>
+              <h2 className="text-xl font-extrabold text-white tracking-tight uppercase">Top Stories</h2>
+              <div className="h-[1px] flex-1 bg-gradient-to-r from-blue-500/40 via-blue-500/10 to-transparent" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
               <div className="lg:col-span-2">
                 {featuredNews[0] && <FeaturedNews article={featuredNews[0]} />}
               </div>
-              <div>
-                <TrendingNews articles={trendingNews} />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-4">
+                  <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
+                  <span className="text-lg font-bold text-amber-500 uppercase tracking-tight">Trending</span>
+                </div>
+                <div className="bg-slate-900/30 rounded-3xl border border-slate-800 p-1">
+                  <TrendingNews articles={trendingNews} />
+                </div>
               </div>
             </div>
 
-            {/* 4. Is DIV par Ref lagaya hai - Scroll yahan aayega */}
             <div ref={newsSectionRef} className="scroll-mt-24">
-              <div className="mb-8">
-                <SearchBar onSearch={handleSearch} onClear={handleClearSearch} />
-              </div>
-
-              <div className="mb-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+                <div className="w-full md:w-80">
+                  <SearchBar onSearch={handleSearch} onClear={handleClearSearch} />
+                </div>
+                
                 <CategoryTabs
                   activeCategory={activeCategory}
                   onCategoryChange={handleCategoryChange}
@@ -147,25 +171,19 @@ export default function Home() {
               </div>
 
               {searchQuery && (
-                <div className="mb-6">
-                  <p className="text-slate-400">
-                    Search results for:{' '}
-                    <span className="text-white font-semibold">&quot;{searchQuery}&quot;</span>
-                    {' '}({displayNews.length} {displayNews.length === 1 ? 'result' : 'results'})
+                <div className="mb-6 px-4 py-2 bg-amber-500/10 border-l-4 border-amber-500 rounded-r-lg inline-block">
+                  <p className="text-slate-300">
+                    Results for: <span className="text-white font-bold">&quot;{searchQuery}&quot;</span>
                   </p>
                 </div>
               )}
 
               {loading ? (
                 <div className="flex items-center justify-center h-64">
-                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                </div>
-              ) : displayNews.length === 0 ? (
-                <div className="text-center py-16">
-                  <p className="text-slate-400 text-lg">No news found.</p>
+                  <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {displayNews.map((article) => (
                     <NewsCard key={article.id} article={article} />
                   ))}
@@ -175,8 +193,20 @@ export default function Home() {
           </>
         )}
       </main>
-
       <Footer />
     </div>
+  );
+}
+
+// 4. Wrap with Suspense to prevent build errors with searchParams
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
