@@ -160,10 +160,10 @@ function HomeContent() {
 
             <div ref={newsSectionRef} className="scroll-mt-24">
               <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-                <div className="w-full md:w-80">
+                <div className="w-full md:1/2">
                   <SearchBar onSearch={handleSearch} onClear={handleClearSearch} />
                 </div>
-                
+
                 <CategoryTabs
                   activeCategory={activeCategory}
                   onCategoryChange={handleCategoryChange}
